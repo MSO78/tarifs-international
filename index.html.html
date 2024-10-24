@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulateur de Tarifs Internationaux - Free</title>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #1a1a1a, #333333);
+      color: white;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+      width: 90%;
+      max-width: 600px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2.5rem;
+      color: #e60000;
+      margin-bottom: 40px;
+      text-transform: uppercase;
+    }
+
+    .form-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-size: 1.3rem;
+      color: white;
+      margin-right: 10px;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 15px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1.2rem;
+      outline: none;
+      margin-left: 10px;
+      transition: all 0.3s ease-in-out;
+    }
+
+    input {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    input:focus {
+      border-color: #e60000;
+    }
+
+    button {
+      background: #e60000;
+      color: white;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
+    button:hover {
+      background: #d00000;
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 10px;
+      border: 1px solid #e60000;
+      font-size: 1.2rem;
+      transition: opacity 0.3s ease;
+    }
+
+    .result.hidden {
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-20px);
+    }
+
+    .result.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    /* Dynamic gradient background */
+    @keyframes gradientMove {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
+    body {
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      background-size: 200% 200%;
+      animation: gradientMove 10s ease infinite;
+    }
+
+    @media (max-width: 768px) {
+      input, button {
+        margin-left: 0;
+        margin-bottom: 20px;
+      }
+
+      .form-group {
+        flex-direction: column;
+      }
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Tarifs vers l'international</h1>
+
+  <!-- Formulaire pour le pays de réception -->
+  <div class="form-group">
+    <label for="countryReception">Pays de réception :</label>
+    <input type="text" id="countryReception" placeholder="Entrez le pays" list="countryList">
+  </div>
+
+  <!-- Bouton pour calculer les tarifs -->
+  <div class="form-group">
+    <button onclick="calculateTariff()">Voir les tarifs</button>
+  </div>
+
+  <!-- Résultats -->
+  <div id="result" class="result hidden"></div>
+
+  <!-- Liste des pays disponibles -->
+  <datalist id="countryList"></datalist>
+</div>
+
+<script>
+// Liste des pays et tarifs en JSON (sans les appels fixes)
+const tarifs = {
+  "france_to_international": {
+    "europe_dom": {
+      "pays": ["Açores (Les)", "Allemagne", "Angleterre", "Autriche", "Belgique", "Bulgarie", "Chypre", "Croatie", "Danemark", "Ecosse", "Espagne", "Estonie", "Finlande", "Grèce", "Gibraltar", "Guernesey", "Hongrie", "Irlande", "Irlande du Nord", "Islande", "Italie", "Jersey", "Lettonie", "Liechtenstein", "Lituanie", "Luxembourg", "Madère", "Man (Île)", "Malte", "Norvège", "Pays-Bas", "Pays de Galles", "Pologne", "Portugal", "Roumanie", "Saint-Pierre-et-Miquelon", "Slovaquie", "Slovénie", "Suède", "République Tchèque", "Mayotte"],
+      "appel_mobile": 0.22,
+      "sms": 0.07,
+      "mms": 1.00
+    },
+    "andorre_suisse": {
+      "pays": ["Andorre", "Féroé (Îles)", "Suisse"],
+      "appel_mobile": 0.66,
+      "sms": 0.07,
+      "mms": 1.00
+    },
+    "albanie_balkans_usa": {
+      "pays": ["Albanie", "Bosnie-Herzégovine", "Groenland", "Kosovo", "Macédoine", "Moldavie", "Monténégro", "Serbie", "Turquie", "Ukraine", "États-Unis", "Alaska", "Hawaï", "Canada", "Iles Vierges américaines", "Porto Rico", "Algérie", "Maroc", "Tunisie"],
+      "appel_mobile": 0.80,
+      "sms": 0.19,
+      "mms": 1.00
+    },
+    "reste_du_monde": {
+      "pays": ["Tous les autres pays"],
+      "appel_mobile": 1.98,
+      "sms": 0.19,
+      "mms": 1.00
+    }
+  }
+};
+
+// Liste des pays restants à ajouter au "Reste du Monde"
+const resteDuMondeList = [
+  "Afghanistan", "Afrique du Sud", "Aland (Îles)", "Alaska", "Angola", "Antigua et Barbuda", "Antilles Néerlandaises", 
+  "Arabie Saoudite", "Argentine", "Arménie", "Aruba", "Australie", "Azerbaïdjan", "Bahamas", "Bahreïn", "Bangladesh", 
+  "Barbade", "Belize", "Bénin", "Bermudes", "Bhoutan", "Biélorussie", "Bolivie", "Botswana", "Brésil", "Brunei", 
+  "Burkina Faso", "Burundi", "Cambodge", "Cameroun", "Cap-Vert", "Chili", "Chine", "Chypre", "Colombie", "Congo", 
+  "Corée du Sud", "Costa Rica", "Côte d'Ivoire", "Cuba", "Djibouti", "Égypte", "Émirats arabes unis", "Équateur", 
+  "États-Unis", "Éthiopie", "Gabon", "Géorgie", "Ghana", "Guatemala", "Guinée", "Inde", "Indonésie", "Irak", "Iran", 
+  "Israël", "Japon", "Jordanie", "Kazakhstan", "Kenya", "Koweït", "Laos", "Liban", "Libye", "Luxembourg", "Madagascar", 
+  "Malaisie", "Mexique", "Monaco", "Mongolie", "Mozambique", "Namibie", "Népal", "Niger", "Nigéria", "Nouvelle-Zélande", 
+  "Oman", "Ouganda", "Pakistan", "Panama", "Paraguay", "Pérou", "Philippines", "Qatar", "Russie", "Rwanda", 
+  "Saint-Kitts-et-Nevis", "Saint-Marin", "Sénégal", "Seychelles", "Singapour", "Somalie", "Sri Lanka", "Suriname", 
+  "Syrie", "Tanzanie", "Tchad", "Thaïlande", "Togo", "Turkménistan", "Ukraine", "Uruguay", "Vatican", "Venezuela", 
+  "Vietnam", "Yémen", "Zambie", "Zimbabwe"
+];
+
+// Fonction pour remplir la liste des pays
+function populateCountries() {
+  const datalist = document.getElementById('countryList');
+  Object.keys(tarifs.france_to_international).forEach(zone => {
+    tarifs.france_to_international[zone].pays.forEach(pays => {
+      const option = document.createElement('option');
+      option.value = pays;
+      datalist.appendChild(option);
+    });
+  });
+
+  // Ajouter les pays du reste du monde
+  resteDuMondeList.forEach(pays => {
+    const option = document.createElement('option');
+    option.value = pays;
+    datalist.appendChild(option);
+  });
+}
+
+// Fonction pour calculer les tarifs
+function calculateTariff() {
+  const countryReception = document.getElementById('countryReception').value;
+  let result = "Tarifs non trouvés pour cette destination.";
+
+  // Rechercher les tarifs dans chaque zone
+  Object.keys(tarifs.france_to_international).forEach(zone => {
+    if (tarifs.france_to_international[zone].pays.includes(countryReception)) {
+      const foundTarif = tarifs.france_to_international[zone];
+      result = `
+        <h3>Tarifs pour ${countryReception} :</h3>
+        <p><strong>Appels vers mobile :</strong> ${foundTarif.appel_mobile} €/minute</p>
+        <p><strong>SMS :</strong> ${foundTarif.sms} €/SMS</p>
+        <p><strong>MMS :</strong> ${foundTarif.mms} €/MMS</p>
+      `;
+    }
+  });
+
+  document.getElementById('result').innerHTML = result;
+  document.getElementById('result').classList.remove('hidden');
+  document.getElementById('result').classList.add('visible');
+}
+
+// Appel pour remplir la liste des pays au chargement de la page
+populateCountries();
+</script>
+
+</body>
+</html>
